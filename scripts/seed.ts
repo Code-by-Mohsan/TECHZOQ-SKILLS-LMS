@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
 import Course from "@/models/Course";
 import * as dotenv from "dotenv";
+import User from "@/models/User"; // Assuming User model exists
+import bcrypt from "bcryptjs";
 
-dotenv.config({ path: ".env" });
+dotenv.config({ path: "./.env" }); // Ensure the .env file is loaded correctly
 
-const DATABASE_URI = process.env.DATABASE_URI;
+const DATABASE_URI = "mongodb+srv://shanibayasin_db_user:9XppO4gUEPXti23Q@jainson.glhnffx.mongodb.net/?appName=jainson"; // Temporarily hardcoded
+
+console.log("Loaded DATABASE_URI:", DATABASE_URI); // Debugging the environment variable
 
 const seedCourses = [
   {
@@ -243,6 +247,13 @@ const seedCourses = [
   },
 ];
 
+const seedAdmin = {
+  name: "Super Admin",
+  email: "superadmin@example.com",
+  password: "newsecurepassword456", // Ensure this is hashed in the User model
+  role: "admin",
+};
+
 async function seed() {
   try {
     if (!DATABASE_URI) {
@@ -306,7 +317,7 @@ async function seed() {
     console.log(`\n✅ Connected to MongoDB in ${connectionTime}ms`);
 
     // Get database info
-    const dbName = mongoose.connection.db?.getName();
+    const dbName = mongoose.connection.db?.databaseName; // Updated to use the correct property
     console.log(`📊 Database: ${dbName || "default"}`);
 
     // Clear existing courses
@@ -328,6 +339,17 @@ async function seed() {
       console.log(`      Duration: ${course.duration}`);
       console.log();
     });
+
+    // Insert admin user
+    console.log("\n📝 Inserting admin user...");
+    const existingAdmin = await User.findOne({ email: seedAdmin.email });
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash(seedAdmin.password, 10);
+      const createdAdmin = await User.create({ ...seedAdmin, password: hashedPassword });
+      console.log(`\n✅ Admin user created: ${createdAdmin.email}`);
+    } else {
+      console.log(`\nℹ️ Admin user already exists: ${existingAdmin.email}`);
+    }
 
     // Get count of all courses
     const totalCourses = await Course.countDocuments();
