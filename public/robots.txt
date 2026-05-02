@@ -1,0 +1,24 @@
+# TECHZOQ Robots.txt
+# For more information, visit https://www.robotstxt.org/
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin, private, and user areas
+Disallow: /admin/
+Disallow: /private/
+Disallow: /dashboard/
+Disallow: /learn/
+Disallow: /api/
+
+# Slow down aggressive bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+# Sitemap location
+Sitemap: https://techzoq.com/sitemap.xml
+Sitemap: https://techzoq.com/sitemap-0.xml
