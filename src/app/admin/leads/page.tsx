@@ -92,7 +92,8 @@ const tempBadge: Record<string, string> = {
   cold: "bg-slate-100 text-slate-700",
 };
 
-function label(val: string) {
+function label(val: string | undefined | null) {
+  if (!val) return "N/A";
   return val.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 

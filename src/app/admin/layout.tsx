@@ -35,10 +35,29 @@ interface UserData {
   permissions?: string[];
 }
 
-const sidebarLinks = [
+interface SidebarLink {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  requiredPermissions: string[];
+  submenu?: Array<{ href: string; label: string }>;
+}
+
+const sidebarLinks: SidebarLink[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, requiredPermissions: ["report.view"] },
   { href: "/admin/reports", label: "Reports", icon: BarChart3, requiredPermissions: ["report.view"] },
-  { href: "/admin/leads", label: "Leads CRM", icon: ContactRound, requiredPermissions: ["lead.manage"] },
+  {
+    href: "/admin/leads",
+    label: "Leads",
+    icon: ContactRound,
+    requiredPermissions: ["lead.manage"],
+    submenu: [
+      { href: "/admin/leads/education", label: "Education Leads" },
+      { href: "/admin/leads/job", label: "Job Leads" },
+      { href: "/admin/leads/internship", label: "Internship Leads" },
+      { href: "/admin/leads/cospace", label: "Cospace Leads" },
+    ],
+  },
   { href: "/admin/courses", label: "Courses", icon: BookOpen, requiredPermissions: ["course.view"] },
   { href: "/admin/applications", label: "Applications", icon: ClipboardList, requiredPermissions: ["application.review"] },
   { href: "/admin/batches", label: "Batches", icon: Calendar, requiredPermissions: ["batch.view"] },
@@ -69,6 +88,7 @@ export default function AdminLayout({
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
 
   const hasPermission = useCallback((requiredPermissions: string[]) => {
     const granted = user?.permissions || [];
@@ -101,6 +121,13 @@ export default function AdminLayout({
     checkAuth();
   }, [checkAuth]);
 
+  useEffect(() => {
+    // Auto-expand Leads menu if current path is a leads submenu
+    if (pathname.startsWith("/admin/leads/")) {
+      setExpandedMenu("/admin/leads");
+    }
+  }, [pathname]);
+
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
@@ -127,6 +154,11 @@ export default function AdminLayout({
   const isActive = (href: string) => {
     if (href === "/admin") return pathname === "/admin";
     return pathname.startsWith(href);
+  };
+
+  const shouldExpandMenu = (link: SidebarLink) => {
+    if (!link.submenu) return false;
+    return link.submenu.some((sub) => pathname.startsWith(sub.href));
   };
 
   const allowedLinks = sidebarLinks.filter((link) => hasPermission(link.requiredPermissions));
@@ -166,6 +198,65 @@ export default function AdminLayout({
         <nav className="flex-1 px-3 py-4 space-y-1">
           {allowedLinks.map((link) => {
             const active = isActive(link.href);
+            const hasSubmenu = link.submenu && link.submenu.length > 0;
+            const isExpanded = expandedMenu === link.href || shouldExpandMenu(link);
+
+            if (hasSubmenu) {
+              return (
+                <div key={link.href}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpandedMenu(isExpanded ? null : link.href);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      active || isExpanded
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    }`}
+                  >
+                    <link.icon
+                      className={`w-5 h-5 ${
+                        active || isExpanded ? "text-blue-600" : "text-gray-400"
+                      }`}
+                    />
+                    {link.label}
+                    <ChevronRight
+                      className={`w-4 h-4 ml-auto transition-transform ${
+                        isExpanded ? "rotate-90" : ""
+                      } ${active || isExpanded ? "text-blue-400" : "text-gray-400"}`}
+                    />
+                  </button>
+                  {isExpanded && (
+                    <div className="space-y-1 mt-1 bg-gray-50 rounded-lg p-2 border border-gray-100">
+                      {link.submenu.map((submenu) => {
+                        const subActive = isActive(submenu.href);
+                        return (
+                          <Link
+                            key={submenu.href}
+                            href={submenu.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                              subActive
+                                ? "bg-blue-600 text-white shadow-sm"
+                                : "text-gray-700 hover:bg-gray-200 hover:text-gray-900"
+                            }`}
+                          >
+                            <div
+                              className={`w-4 h-4 rounded-full ${
+                                subActive ? "bg-white" : "bg-gray-400"
+                              }`}
+                            />
+                            {submenu.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={link.href}
